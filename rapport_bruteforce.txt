@@ -1,11 +1,12 @@
 Rapport d'analyse SSH
 ======================
 
-Seuil d'alerte : 5 échecs
+Seuil d'alerte : 3 échecs
 
 Résumé des échecs par IP :
 - 45.83.12.9 : 4 échec(s) | comptes ciblés : admin, oracle, postgres, test
 - 192.168.1.10 : 3 échec(s) | comptes ciblés : admin, root
 
 IP suspectes :
-Aucune IP suspecte détectée.
+- ALERTE : 45.83.12.9 avec 4 échecs
+- ALERTE : 192.168.1.10 avec 3 échecs
