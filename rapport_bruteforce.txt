@@ -3,13 +3,33 @@ Rapport d'analyse SSH
 
 Seuil d'alerte       : 3 échecs
 Fenêtre glissante    : 60 secondes
-Lignes analysées     : 8
-IP compromises       : 0
+Lignes analysées     : 116
+IP compromises       : 1
 
 Résumé des échecs par IP :
-- 45.83.12.9 : 4 échec(s) | taux max : 4 échecs/60s | comptes : admin, oracle, postgres, test
-- 192.168.1.10 : 3 échec(s) | taux max : 2 échecs/60s | comptes : admin, root
+- 185.220.101.5 : 22 échec(s) | taux max : 14 échecs/60s | comptes : admin, backup, deploy, ftp, git, mysql, oracle, pi, postgres, root, test, ubuntu, user, www
+- 77.91.83.17 : 18 échec(s) | taux max : 10 échecs/60s | comptes : admin, git, mysql, oracle, pi, postgres, root, test, ubuntu, www
+- 10.100.0.55 : 15 échec(s) | taux max : 14 échecs/60s | comptes : admin, deploy, root
+- 45.83.12.9 : 12 échec(s) | taux max : 2 échecs/60s | comptes : admin, root, test
+- 192.168.1.10 : 12 échec(s) | taux max : 2 échecs/60s [COMPROMIS] | comptes : admin, root
+- 194.165.16.5 : 10 échec(s) | taux max : 10 échecs/60s | comptes : admin, deploy, git, mysql, oracle, pi, postgres, root, test, ubuntu
+- 91.121.44.6 : 7 échec(s) | taux max : 3 échecs/60s | comptes : admin, root, test
+- 103.99.0.43 : 5 échec(s) | taux max : 5 échecs/60s | comptes : mysql, oracle, postgres, root, test
+- 2001:db8::cafe : 4 échec(s) | taux max : 4 échecs/60s | comptes : admin, root, test, ubuntu
+- 203.0.113.42 : 3 échec(s) | taux max : 3 échecs/60s | comptes : root
+- 192.168.1.100 : 2 échec(s) | taux max : 2 échecs/60s | comptes : jean.dupont
 
 IP suspectes :
-- ALERTE : 45.83.12.9 avec 4 échecs | taux max : 4 échecs/60s
-- ALERTE : 192.168.1.10 avec 3 échecs | taux max : 2 échecs/60s
+- ALERTE : 185.220.101.5 avec 22 échecs | taux max : 14 échecs/60s
+- ALERTE : 77.91.83.17 avec 18 échecs | taux max : 10 échecs/60s
+- ALERTE : 10.100.0.55 avec 15 échecs | taux max : 14 échecs/60s
+- ALERTE : 45.83.12.9 avec 12 échecs | taux max : 2 échecs/60s
+- ALERTE : 192.168.1.10 avec 12 échecs | taux max : 2 échecs/60s ← COMPROMIS
+- ALERTE : 194.165.16.5 avec 10 échecs | taux max : 10 échecs/60s
+- ALERTE : 91.121.44.6 avec 7 échecs | taux max : 3 échecs/60s
+- ALERTE : 103.99.0.43 avec 5 échecs | taux max : 5 échecs/60s
+- ALERTE : 2001:db8::cafe avec 4 échecs | taux max : 4 échecs/60s
+- ALERTE : 203.0.113.42 avec 3 échecs | taux max : 3 échecs/60s
+
+COMPROMISSIONS DÉTECTÉES :
+- 192.168.1.10 : 12 échec(s) suivis d'une connexion acceptée

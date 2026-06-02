@@ -318,6 +318,7 @@ def generer_rapport(res: ResultatAnalyse, seuil: int, fichier_rapport: str,
 # ── Point d'entrée ────────────────────────────────────────────────────────────
 
 def main() -> None:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     signal.signal(signal.SIGINT, lambda *_: sys.exit(0))
     args = parser_arguments()
     res  = analyser_logs(args.fichier, fenetre_s=args.fenetre)

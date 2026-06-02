@@ -1,8 +1,116 @@
-Jun 2 10:12:01 server sshd[1234]: Failed password for root from 192.168.1.10 port 51423 ssh2
-Jun 2 10:12:08 server sshd[1235]: Failed password for admin from 192.168.1.10 port 51424 ssh2
-Jun 2 10:13:22 server sshd[1236]: Accepted password for user from 192.168.1.20 port 51425 ssh2
-Jun 2 10:14:01 server sshd[1237]: Failed password for invalid user test from 45.83.12.9 port 60222 ssh2
-Jun 2 10:14:08 server sshd[1238]: Failed password for invalid user oracle from 45.83.12.9 port 60223 ssh2
-Jun 2 10:14:15 server sshd[1239]: Failed password for invalid user postgres from 45.83.12.9 port 60224 ssh2
-Jun 2 10:14:20 server sshd[1240]: Failed password for invalid user admin from 45.83.12.9 port 60225 ssh2
-Jun 2 10:15:01 server sshd[1241]: Failed password for root from 192.168.1.10 port 51426 ssh2
+Jan  3 02:11:03 srv-prod-01 sshd[12001]: Failed password for root from 185.220.101.5 port 51443 ssh2
+Jan  3 02:11:07 srv-prod-01 sshd[12002]: Failed password for admin from 185.220.101.5 port 51444 ssh2
+Jan  3 02:11:11 srv-prod-01 sshd[12003]: Failed password for invalid user test from 185.220.101.5 port 51445 ssh2
+Jan  3 02:11:14 srv-prod-01 sshd[12004]: Failed password for invalid user oracle from 185.220.101.5 port 51446 ssh2
+Jan  3 02:11:17 srv-prod-01 sshd[12005]: Failed password for invalid user mysql from 185.220.101.5 port 51447 ssh2
+Jan  3 02:11:20 srv-prod-01 sshd[12006]: Failed password for invalid user postgres from 185.220.101.5 port 51448 ssh2
+Jan  3 02:11:23 srv-prod-01 sshd[12007]: Failed password for invalid user ubuntu from 185.220.101.5 port 51449 ssh2
+Jan  3 02:11:26 srv-prod-01 sshd[12008]: Failed password for invalid user pi from 185.220.101.5 port 51450 ssh2
+Jan  3 02:11:29 srv-prod-01 sshd[12009]: Failed password for invalid user git from 185.220.101.5 port 51451 ssh2
+Jan  3 02:11:32 srv-prod-01 sshd[12010]: Failed password for invalid user deploy from 185.220.101.5 port 51452 ssh2
+Jan  3 02:11:36 srv-prod-01 sshd[12011]: Failed password for invalid user www from 185.220.101.5 port 51453 ssh2
+Jan  3 02:11:39 srv-prod-01 sshd[12012]: Failed password for invalid user ftp from 185.220.101.5 port 51454 ssh2
+Jan  3 02:11:43 srv-prod-01 sshd[12013]: Failed password for invalid user user from 185.220.101.5 port 51455 ssh2
+Jan  3 02:11:47 srv-prod-01 sshd[12014]: Failed password for invalid user backup from 185.220.101.5 port 51456 ssh2
+Jan  3 08:30:01 srv-prod-01 sshd[12100]: Accepted password for sysadmin from 10.0.0.5 port 55432 ssh2
+Jan  3 08:30:01 srv-prod-01 sshd[12100]: pam_unix(sshd:session): session opened for user sysadmin by (uid=0)
+Jan 15 14:22:11 srv-prod-01 sshd[12200]: Failed password for invalid user admin from 45.83.12.9 port 60222 ssh2
+Jan 15 14:22:38 srv-prod-01 sshd[12201]: Failed password for root from 45.83.12.9 port 60223 ssh2
+Jan 20 09:15:04 srv-prod-01 sshd[12300]: Failed password for root from 192.168.1.10 port 51801 ssh2
+Jan 20 09:15:11 srv-prod-01 sshd[12301]: Failed password for admin from 192.168.1.10 port 51802 ssh2
+Jan 21 11:00:01 srv-prod-01 sshd[12400]: Accepted password for sysadmin from 10.0.0.5 port 55500 ssh2
+Jan 29 17:40:01 srv-prod-01 sshd[12500]: Accepted password for jean.dupont from 192.168.1.20 port 55550 ssh2
+Feb  5 03:44:12 srv-prod-01 sshd[13001]: Failed password for invalid user test from 103.99.0.43 port 62001 ssh2
+Feb  5 03:44:25 srv-prod-01 sshd[13002]: Failed password for invalid user oracle from 103.99.0.43 port 62002 ssh2
+Feb  5 03:44:38 srv-prod-01 sshd[13003]: Failed password for invalid user postgres from 103.99.0.43 port 62003 ssh2
+Feb  5 03:44:51 srv-prod-01 sshd[13004]: Failed password for invalid user mysql from 103.99.0.43 port 62004 ssh2
+Feb  5 03:45:04 srv-prod-01 sshd[13005]: Failed password for root from 103.99.0.43 port 62005 ssh2
+Feb  5 10:00:01 srv-prod-01 sshd[13100]: Accepted password for jean.dupont from 192.168.1.20 port 55600 ssh2
+Feb 10 16:55:22 srv-prod-01 sshd[13200]: Failed password for root from 45.83.12.9 port 60224 ssh2
+Feb 10 16:55:49 srv-prod-01 sshd[13201]: Failed password for invalid user test from 45.83.12.9 port 60225 ssh2
+Feb 14 15:44:22 srv-prod-01 sshd[13300]: Failed password for invalid user test from 2001:db8::cafe port 60111 ssh2
+Feb 14 15:44:35 srv-prod-01 sshd[13301]: Failed password for invalid user admin from 2001:db8::cafe port 60112 ssh2
+Feb 14 15:44:48 srv-prod-01 sshd[13302]: Failed password for root from 2001:db8::cafe port 60113 ssh2
+Feb 14 15:45:01 srv-prod-01 sshd[13303]: Failed password for invalid user ubuntu from 2001:db8::cafe port 60114 ssh2
+Feb 15 09:22:11 srv-prod-01 sshd[13400]: Failed password for invalid user admin from 91.121.44.6 port 63500 ssh2
+Feb 15 09:22:41 srv-prod-01 sshd[13401]: Failed password for root from 91.121.44.6 port 63501 ssh2
+Feb 20 08:00:01 srv-prod-01 sshd[13500]: Accepted password for sysadmin from 10.0.0.5 port 55700 ssh2
+Feb 25 23:11:44 srv-prod-01 sshd[13600]: Failed password for root from 192.168.1.10 port 51803 ssh2
+Feb 25 23:11:51 srv-prod-01 sshd[13601]: Failed password for admin from 192.168.1.10 port 51804 ssh2
+Mar  1 04:33:41 srv-prod-01 sshd[15001]: Failed password for root from 10.100.0.55 port 58234 ssh2
+Mar  1 04:33:41 srv-prod-01 sshd[15001]: message repeated 8 times: [ Failed password for root from 10.100.0.55 port 58234 ssh2]
+Mar  1 04:34:12 srv-prod-01 sshd[15002]: Failed password for invalid user admin from 10.100.0.55 port 58244 ssh2
+Mar  1 04:34:12 srv-prod-01 sshd[15002]: message repeated 4 times: [ Failed password for invalid user admin from 10.100.0.55 port 58244 ssh2]
+Mar  1 04:34:45 srv-prod-01 sshd[15003]: Failed password for invalid user deploy from 10.100.0.55 port 58254 ssh2
+Mar  5 09:00:01 srv-prod-01 sshd[15100]: Accepted password for sysadmin from 10.0.0.5 port 55800 ssh2
+Mar 10 20:18:33 srv-prod-01 sshd[15200]: Failed password for invalid user admin from 45.83.12.9 port 60226 ssh2
+Mar 10 20:18:58 srv-prod-01 sshd[15201]: Failed password for root from 45.83.12.9 port 60227 ssh2
+Mar 15 14:22:01 srv-prod-01 sshd[15300]: Failed password for jean.dupont from 192.168.1.100 port 51901 ssh2
+Mar 15 14:22:09 srv-prod-01 sshd[15301]: Failed password for jean.dupont from 192.168.1.100 port 51902 ssh2
+Mar 18 01:45:10 srv-prod-01 sshd[15400]: Failed password for root from 77.91.83.17 port 63001 ssh2
+Mar 18 01:45:13 srv-prod-01 sshd[15401]: Failed password for admin from 77.91.83.17 port 63002 ssh2
+Mar 18 01:45:16 srv-prod-01 sshd[15402]: Failed password for invalid user test from 77.91.83.17 port 63003 ssh2
+Mar 18 01:45:19 srv-prod-01 sshd[15403]: Failed password for invalid user oracle from 77.91.83.17 port 63004 ssh2
+Mar 18 01:45:22 srv-prod-01 sshd[15404]: Failed password for invalid user mysql from 77.91.83.17 port 63005 ssh2
+Mar 18 01:45:24 srv-prod-01 sshd[15405]: Failed password for invalid user postgres from 77.91.83.17 port 63006 ssh2
+Mar 18 01:45:27 srv-prod-01 sshd[15406]: Failed password for invalid user ubuntu from 77.91.83.17 port 63007 ssh2
+Mar 18 01:45:29 srv-prod-01 sshd[15407]: Failed password for invalid user pi from 77.91.83.17 port 63008 ssh2
+Mar 18 01:45:31 srv-prod-01 sshd[15408]: Failed password for invalid user git from 77.91.83.17 port 63009 ssh2
+Mar 18 01:45:34 srv-prod-01 sshd[15409]: Failed password for invalid user www from 77.91.83.17 port 63010 ssh2
+Mar 20 11:00:01 srv-prod-01 sshd[15500]: Accepted password for sysadmin from 10.0.0.5 port 55900 ssh2
+Mar 22 17:45:01 srv-prod-01 sshd[15600]: Failed password for invalid user admin from 91.121.44.6 port 63502 ssh2
+Mar 22 17:45:31 srv-prod-01 sshd[15601]: Failed password for root from 91.121.44.6 port 63503 ssh2
+Mar 25 22:05:15 srv-prod-01 sshd[15700]: Failed password for root from 192.168.1.10 port 51805 ssh2
+Mar 25 22:05:22 srv-prod-01 sshd[15701]: Failed password for admin from 192.168.1.10 port 51806 ssh2
+Mar 28 09:00:01 srv-prod-01 sshd[15800]: Accepted password for jean.dupont from 192.168.1.20 port 56050 ssh2
+Apr  5 11:22:33 srv-prod-01 sshd[18001]: Failed password for root from 203.0.113.42 port 59111 ssh2
+Apr  5 11:22:35 srv-prod-01 sshd[18001]: error: maximum authentication attempts exceeded for root from 203.0.113.42 port 59111 ssh2 [preauth]
+Apr  5 11:22:38 srv-prod-01 sshd[18002]: Disconnecting authenticating user admin from 203.0.113.42 port 59112: Too many authentication failures [preauth]
+Apr 10 08:00:01 srv-prod-01 sshd[18100]: Accepted password for sysadmin from 10.0.0.5 port 56000 ssh2
+Apr 12 17:33:44 srv-prod-01 sshd[18200]: Failed password for invalid user admin from 45.83.12.9 port 60228 ssh2
+Apr 12 17:34:09 srv-prod-01 sshd[18201]: Failed password for root from 45.83.12.9 port 60229 ssh2
+Apr 20 03:14:55 srv-prod-01 sshd[18300]: Failed password for root from 192.168.1.10 port 51807 ssh2
+Apr 20 03:15:02 srv-prod-01 sshd[18301]: Failed password for admin from 192.168.1.10 port 51808 ssh2
+Apr 22 04:11:03 srv-prod-01 sshd[18400]: Failed password for root from 185.220.101.5 port 51500 ssh2
+Apr 22 04:11:07 srv-prod-01 sshd[18401]: Failed password for admin from 185.220.101.5 port 51501 ssh2
+Apr 22 04:11:11 srv-prod-01 sshd[18402]: Failed password for invalid user test from 185.220.101.5 port 51502 ssh2
+Apr 22 04:11:15 srv-prod-01 sshd[18403]: Failed password for invalid user oracle from 185.220.101.5 port 51503 ssh2
+Apr 22 04:11:19 srv-prod-01 sshd[18404]: Failed password for invalid user mysql from 185.220.101.5 port 51504 ssh2
+Apr 22 04:11:23 srv-prod-01 sshd[18405]: Failed password for invalid user postgres from 185.220.101.5 port 51505 ssh2
+Apr 22 04:11:27 srv-prod-01 sshd[18406]: Failed password for invalid user git from 185.220.101.5 port 51506 ssh2
+Apr 22 04:11:31 srv-prod-01 sshd[18407]: Failed password for invalid user deploy from 185.220.101.5 port 51507 ssh2
+Apr 25 09:00:01 srv-prod-01 sshd[18500]: Accepted password for jean.dupont from 192.168.1.20 port 56100 ssh2
+Apr 30 22:10:01 srv-prod-01 sshd[18600]: Failed password for invalid user admin from 91.121.44.6 port 63504 ssh2
+Apr 30 22:10:31 srv-prod-01 sshd[18601]: Failed password for root from 91.121.44.6 port 63505 ssh2
+Apr 30 22:11:01 srv-prod-01 sshd[18602]: Failed password for invalid user test from 91.121.44.6 port 63506 ssh2
+May  3 02:59:11 srv-prod-01 sshd[20001]: Failed password for root from 45.83.12.9 port 60230 ssh2
+May  3 02:59:37 srv-prod-01 sshd[20002]: Failed password for invalid user admin from 45.83.12.9 port 60231 ssh2
+May 10 21:30:05 srv-prod-01 sshd[20100]: Failed password for root from 194.165.16.5 port 64001 ssh2
+May 10 21:30:10 srv-prod-01 sshd[20101]: Failed password for admin from 194.165.16.5 port 64002 ssh2
+May 10 21:30:15 srv-prod-01 sshd[20102]: Failed password for invalid user test from 194.165.16.5 port 64003 ssh2
+May 10 21:30:20 srv-prod-01 sshd[20103]: Failed password for invalid user oracle from 194.165.16.5 port 64004 ssh2
+May 10 21:30:25 srv-prod-01 sshd[20104]: Failed password for invalid user mysql from 194.165.16.5 port 64005 ssh2
+May 10 21:30:30 srv-prod-01 sshd[20105]: Failed password for invalid user postgres from 194.165.16.5 port 64006 ssh2
+May 10 21:30:35 srv-prod-01 sshd[20106]: Failed password for invalid user ubuntu from 194.165.16.5 port 64007 ssh2
+May 10 21:30:40 srv-prod-01 sshd[20107]: Failed password for invalid user pi from 194.165.16.5 port 64008 ssh2
+May 10 21:30:45 srv-prod-01 sshd[20108]: Failed password for invalid user git from 194.165.16.5 port 64009 ssh2
+May 10 21:30:50 srv-prod-01 sshd[20109]: Failed password for invalid user deploy from 194.165.16.5 port 64010 ssh2
+May 15 10:44:22 srv-prod-01 sshd[20200]: Failed password for root from 192.168.1.10 port 51809 ssh2
+May 15 10:44:29 srv-prod-01 sshd[20201]: Failed password for admin from 192.168.1.10 port 51810 ssh2
+May 20 03:22:05 srv-prod-01 sshd[20300]: Failed password for root from 77.91.83.17 port 63100 ssh2
+May 20 03:22:08 srv-prod-01 sshd[20301]: Failed password for admin from 77.91.83.17 port 63101 ssh2
+May 20 03:22:11 srv-prod-01 sshd[20302]: Failed password for invalid user test from 77.91.83.17 port 63102 ssh2
+May 20 03:22:14 srv-prod-01 sshd[20303]: Failed password for invalid user oracle from 77.91.83.17 port 63103 ssh2
+May 20 03:22:17 srv-prod-01 sshd[20304]: Failed password for invalid user mysql from 77.91.83.17 port 63104 ssh2
+May 20 03:22:20 srv-prod-01 sshd[20305]: Failed password for invalid user postgres from 77.91.83.17 port 63105 ssh2
+May 20 03:22:23 srv-prod-01 sshd[20306]: Failed password for invalid user ubuntu from 77.91.83.17 port 63106 ssh2
+May 20 03:22:25 srv-prod-01 sshd[20307]: Failed password for invalid user pi from 77.91.83.17 port 63107 ssh2
+May 22 08:00:01 srv-prod-01 sshd[20400]: Accepted password for sysadmin from 10.0.0.5 port 56200 ssh2
+May 28 14:00:01 srv-prod-01 sshd[20500]: Accepted password for jean.dupont from 192.168.1.20 port 56300 ssh2
+Jun  1 07:15:22 srv-prod-01 sshd[22001]: Failed password for root from 45.83.12.9 port 60232 ssh2
+Jun  1 07:15:48 srv-prod-01 sshd[22002]: Failed password for invalid user admin from 45.83.12.9 port 60233 ssh2
+Jun  2 08:30:44 srv-prod-01 sshd[22100]: Failed password for root from 192.168.1.10 port 51811 ssh2
+Jun  2 08:30:51 srv-prod-01 sshd[22101]: Failed password for admin from 192.168.1.10 port 51812 ssh2
+Jun  2 09:15:33 srv-prod-01 sshd[22200]: Accepted password for admin from 192.168.1.10 port 51813 ssh2
+Jun  2 10:00:01 srv-prod-01 sshd[22300]: Accepted password for sysadmin from 10.0.0.5 port 56400 ssh2
+Jun  2 14:30:01 srv-prod-01 sshd[22400]: Accepted password for jean.dupont from 192.168.1.20 port 56500 ssh2
