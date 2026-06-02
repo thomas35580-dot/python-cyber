@@ -2,12 +2,13 @@ Rapport d'analyse SSH
 ======================
 
 Seuil d'alerte       : 3 échecs
+Fenêtre glissante    : 30 secondes
 Lignes analysées     : 8
 IP compromises       : 0
 
 Résumé des échecs par IP :
-- 45.83.12.9 : 4 échec(s) | taux max : 4 échecs/60s | comptes : admin, oracle, postgres, test
-- 192.168.1.10 : 3 échec(s) | taux max : 2 échecs/60s | comptes : admin, root
+- 45.83.12.9 : 4 échec(s) | taux max : 4 échecs/30s | comptes : admin, oracle, postgres, test
+- 192.168.1.10 : 3 échec(s) | taux max : 2 échecs/30s | comptes : admin, root
 
 IP suspectes :
 - ALERTE : 45.83.12.9 avec 4 échecs

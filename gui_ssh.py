@@ -8,7 +8,7 @@ from tkinter import filedialog, ttk
 import customtkinter as ctk
 
 from analyse_ssh import (
-    LOG_FILE, RAPPORT_FILE, SEUIL_ALERTE,
+    LOG_FILE, RAPPORT_FILE, SEUIL_ALERTE, FENETRE_GLISSANTE_S,
     ResultatAnalyse, _severite,
     analyser_logs, generer_rapport,
 )
@@ -120,9 +120,10 @@ class SSHBruteHunter(ctk.CTk):
         self.minsize(980, 640)
         self.configure(fg_color=C_BG)
 
-        self._var_fichier = ctk.StringVar(value=LOG_FILE)
-        self._var_seuil   = ctk.IntVar(value=SEUIL_ALERTE)
-        self._var_rapport = ctk.StringVar(value=RAPPORT_FILE)
+        self._var_fichier  = ctk.StringVar(value=LOG_FILE)
+        self._var_seuil    = ctk.IntVar(value=SEUIL_ALERTE)
+        self._var_fenetre  = ctk.IntVar(value=FENETRE_GLISSANTE_S)
+        self._var_rapport  = ctk.StringVar(value=RAPPORT_FILE)
         self._resultats: ResultatAnalyse | None = None
         self._theme       = _THEME_ACTIF
         self._pulse_job: str | None = None
@@ -213,6 +214,20 @@ class SSHBruteHunter(ctk.CTk):
         ctk.CTkLabel(sb, text="échecs minimum par IP",
                      font=ctk.CTkFont(size=10), text_color=C_TEXT3).grid(
                      row=r, column=0, padx=20, pady=(0,14), sticky="w"); r += 1
+
+        # Fenêtre glissante
+        self._label(sb, r, "Fenêtre glissante (s)"); r += 1
+        row_fen = ctk.CTkFrame(sb, fg_color="transparent")
+        row_fen.grid(row=r, column=0, padx=20, pady=(0,14), sticky="ew")
+        row_fen.grid_columnconfigure(0, weight=1)
+        ctk.CTkEntry(row_fen, textvariable=self._var_fenetre,
+                     height=32, width=80, font=ctk.CTkFont(size=12),
+                     fg_color=C_MUTED, border_color=C_BORDER,
+                     justify="center").grid(row=0, column=0, sticky="w")
+        ctk.CTkLabel(row_fen, text="secondes par fenêtre",
+                     font=ctk.CTkFont(size=10), text_color=C_TEXT3).grid(
+                     row=0, column=1, padx=(10, 0), sticky="w")
+        r += 1
 
         # Rapport
         self._label(sb, r, "Fichier rapport"); r += 1
@@ -490,14 +505,15 @@ class SSHBruteHunter(ctk.CTk):
         self._progress.configure(mode="indeterminate")
         self._progress.start()
         self._set_status("Analyse en cours…", C_WARNING)
-        self._log(f"Lancement  ·  {self._var_fichier.get()}  ·  seuil {self._var_seuil.get()}")
+        self._log(f"Lancement  ·  {self._var_fichier.get()}  ·  seuil {self._var_seuil.get()}  ·  fenêtre {self._var_fenetre.get()}s")
         threading.Thread(target=self._thread_analyse, daemon=True).start()
 
     def _thread_analyse(self) -> None:
         try:
-            res = analyser_logs(self._var_fichier.get())
+            fenetre_s = self._var_fenetre.get()
+            res   = analyser_logs(self._var_fichier.get(), fenetre_s=fenetre_s)
             seuil = self._var_seuil.get()
-            self.after(0, self._afficher, res, seuil)
+            self.after(0, self._afficher, res, seuil, fenetre_s)
         except SystemExit:
             self.after(0, self._log, "Erreur : fichier introuvable ou illisible.")
             self.after(0, self._set_status, "Erreur", C_DANGER)
@@ -507,19 +523,24 @@ class SSHBruteHunter(ctk.CTk):
             self.after(0, lambda: self._btn_analyser.configure(
                 state="normal", text="⚡  Analyser"))
 
-    def _afficher(self, res: ResultatAnalyse, seuil: int) -> None:
+    def _afficher(self, res: ResultatAnalyse, seuil: int,
+                  fenetre_s: int = FENETRE_GLISSANTE_S) -> None:
         for row in self._tree.get_children():
             self._tree.delete(row)
 
+        # Mise à jour du header de colonne avec la vraie fenêtre utilisée
+        self._tree.heading("taux", text=f"Max / {fenetre_s}s")
+
         nb_suspects = sum(1 for ip, nb in res.tries
-                          if nb >= seuil or ip in res.compromises)
+                          if _severite(nb, seuil, res.taux_max.get(ip, 0)) != "ok"
+                          or ip in res.compromises)
 
         rows = []
         for ip, nb in res.tries:
-            sev     = "compromis" if ip in res.compromises else _severite(nb, seuil)
-            statut  = LABELS_STATUT[sev]
             taux    = res.taux_max.get(ip, 0)
-            taux_s  = f"{taux:.0f}/min" if taux else "—"
+            sev     = "compromis" if ip in res.compromises else _severite(nb, seuil, taux)
+            statut  = LABELS_STATUT[sev]
+            taux_s  = f"{taux:.0f}" if taux else "—"
             comptes = ", ".join(sorted(res.cibles.get(ip, set())))
             rows.append((ip, nb, statut, taux_s, comptes, sev))
 
@@ -544,7 +565,7 @@ class SSHBruteHunter(ctk.CTk):
     def _mode_demo(self) -> None:
         self._log("Mode démo — données simulées (8 IP, 1 compromise, IPv6 inclus).")
         res = _demo_resultats()
-        self._afficher(res, self._var_seuil.get())
+        self._afficher(res, self._var_seuil.get(), self._var_fenetre.get())
 
     # ── Export ────────────────────────────────────────────────────────────────
 
@@ -558,7 +579,8 @@ class SSHBruteHunter(ctk.CTk):
             filetypes=[("Fichiers texte", "*.txt"), ("Tous les fichiers", "*.*")])
         if not chemin:
             return
-        generer_rapport(self._resultats, self._var_seuil.get(), chemin)
+        generer_rapport(self._resultats, self._var_seuil.get(), chemin,
+                        fenetre_s=self._var_fenetre.get())
         self._log(f"Rapport → {chemin}")
         self._set_status("Rapport exporté", C_OK, chemin)
         self._pulse_dot(C_OK)

@@ -8,7 +8,7 @@ import os
 import tempfile
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 
 LOG_FILE               = "auth.log"
@@ -47,7 +47,8 @@ _RE_ACCEPTED = re.compile(
     rf"Accepted (?:password|publickey) for \S+ from\s+{_IP}"
 )
 
-_PAR_NB_DESC = operator.itemgetter(1)
+_PAR_NB_DESC    = operator.itemgetter(1)
+_ANNEE_COURANTE = datetime.now().year   # extrait une fois — évite l'appel par ligne
 
 
 # ── Dataclass résultat ────────────────────────────────────────────────────────
@@ -63,12 +64,17 @@ class ResultatAnalyse:
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def _severite(nb: int, seuil: int) -> str:
-    """Retourne ok / suspect / eleve / critique selon le ratio nb/seuil."""
-    if nb < seuil:          return "ok"
-    elif nb < seuil * 2:    return "suspect"
-    elif nb < seuil * 3:    return "eleve"
-    else:                   return "critique"
+def _severite(nb: int, seuil: int, taux: float = 0.0) -> str:
+    """Combine comptage cumulatif et taux max (OR logique, retient le pire niveau).
+
+    Un brute-force rapide (taux élevé, nb faible) et une campagne lente
+    (nb élevé, taux faible) sont tous les deux détectés correctement.
+    """
+    score = max(nb, taux)
+    if score < seuil:          return "ok"
+    elif score < seuil * 2:    return "suspect"
+    elif score < seuil * 3:    return "eleve"
+    else:                      return "critique"
 
 
 def _valider_ip(ip: str) -> bool:
@@ -84,9 +90,13 @@ def _parse_timestamp(ligne: str) -> datetime | None:
     if not m:
         return None
     try:
-        return datetime.strptime(
-            f"{datetime.now().year} {m.group(1).strip()}", "%Y %b %d %H:%M:%S"
+        ts = datetime.strptime(
+            f"{_ANNEE_COURANTE} {m.group(1).strip()}", "%Y %b %d %H:%M:%S"
         )
+        # Passage d'année : log de déc. relu en janv. → timestamp dans le futur
+        if ts > datetime.now():
+            ts = ts.replace(year=_ANNEE_COURANTE - 1)
+        return ts
     except ValueError:
         return None
 
@@ -192,8 +202,14 @@ def analyser_logs(chemin: str, fenetre_s: int = FENETRE_GLISSANTE_S) -> Resultat
                     if _valider_ip(ip):
                         ips_acceptees.add(ip)
 
+    except IsADirectoryError:
+        print(f"Erreur : '{chemin}' est un répertoire, pas un fichier.")
+        sys.exit(1)
     except PermissionError:
         print(f"Erreur : permission refusée pour lire '{chemin}'.")
+        sys.exit(1)
+    except OSError as e:
+        print(f"Erreur lors de la lecture de '{chemin}' : {e}")
         sys.exit(1)
 
     taux_max = {
@@ -213,7 +229,8 @@ def analyser_logs(chemin: str, fenetre_s: int = FENETRE_GLISSANTE_S) -> Resultat
 
 # ── Affichage terminal ────────────────────────────────────────────────────────
 
-def afficher_resultats(res: ResultatAnalyse, seuil: int) -> None:
+def afficher_resultats(res: ResultatAnalyse, seuil: int,
+                       fenetre_s: int = FENETRE_GLISSANTE_S) -> None:
     LABELS = {
         "ok": "OK", "suspect": "SUSPECT",
         "eleve": "ÉLEVÉ", "critique": "CRITIQUE",
@@ -221,10 +238,10 @@ def afficher_resultats(res: ResultatAnalyse, seuil: int) -> None:
     print("Analyse terminée.")
     print("-----------------")
     for ip, nb in res.tries:
-        sev    = "compromis" if ip in res.compromises else _severite(nb, seuil)
-        label  = "COMPROMIS" if sev == "compromis" else LABELS[sev]
         taux   = res.taux_max.get(ip, 0)
-        taux_s = f" | {taux:.0f} échecs/60s" if taux else ""
+        sev    = "compromis" if ip in res.compromises else _severite(nb, seuil, taux)
+        label  = "COMPROMIS" if sev == "compromis" else LABELS[sev]
+        taux_s = f" | {taux:.0f} échecs/{fenetre_s}s" if taux else ""
         comptes = ", ".join(sorted(res.cibles.get(ip, set())))
         print(f"{ip} : {nb} échec(s) - {label}{taux_s} | comptes : {comptes}")
     if res.compromises:
@@ -233,10 +250,12 @@ def afficher_resultats(res: ResultatAnalyse, seuil: int) -> None:
 
 # ── Rapport ───────────────────────────────────────────────────────────────────
 
-def _ecrire_rapport(f, res: ResultatAnalyse, seuil: int) -> None:
+def _ecrire_rapport(f, res: ResultatAnalyse, seuil: int,
+                    fenetre_s: int = FENETRE_GLISSANTE_S) -> None:
     f.write("Rapport d'analyse SSH\n")
     f.write("======================\n\n")
     f.write(f"Seuil d'alerte       : {seuil} échecs\n")
+    f.write(f"Fenêtre glissante    : {fenetre_s} secondes\n")
     f.write(f"Lignes analysées     : {res.nb_lignes}\n")
     f.write(f"IP compromises       : {len(res.compromises)}\n\n")
 
@@ -244,12 +263,13 @@ def _ecrire_rapport(f, res: ResultatAnalyse, seuil: int) -> None:
     for ip, nb in res.tries:
         comptes = ", ".join(sorted(res.cibles.get(ip, set())))
         taux    = res.taux_max.get(ip, 0)
-        taux_s  = f" | taux max : {taux:.0f} échecs/60s" if taux else ""
+        taux_s  = f" | taux max : {taux:.0f} échecs/{fenetre_s}s" if taux else ""
         flag    = " [COMPROMIS]" if ip in res.compromises else ""
         f.write(f"- {ip} : {nb} échec(s){taux_s}{flag} | comptes : {comptes}\n")
 
     f.write("\nIP suspectes :\n")
-    suspectes = [(ip, nb) for ip, nb in res.tries if nb >= seuil]
+    suspectes = [(ip, nb) for ip, nb in res.tries
+                 if _severite(nb, seuil, res.taux_max.get(ip, 0)) != "ok"]
     if not suspectes:
         f.write("Aucune IP suspecte détectée.\n")
     else:
@@ -264,14 +284,14 @@ def _ecrire_rapport(f, res: ResultatAnalyse, seuil: int) -> None:
             f.write(f"- {ip} : {nb} échec(s) suivis d'une connexion acceptée\n")
 
 
-def generer_rapport(res: ResultatAnalyse, seuil: int, fichier_rapport: str) -> None:
+def generer_rapport(res: ResultatAnalyse, seuil: int, fichier_rapport: str,
+                    fenetre_s: int = FENETRE_GLISSANTE_S) -> None:
     parent = Path(fichier_rapport).resolve().parent
     try:
-        # Écriture atomique : fichier temporaire → os.replace
         fd, tmp = tempfile.mkstemp(dir=parent, suffix=".tmp", text=True)
         try:
             with os.fdopen(fd, "w", encoding="utf-8") as f:
-                _ecrire_rapport(f, res, seuil)
+                _ecrire_rapport(f, res, seuil, fenetre_s)
             os.replace(tmp, fichier_rapport)
         except Exception:
             try:
@@ -293,8 +313,8 @@ def main() -> None:
     signal.signal(signal.SIGINT, lambda *_: sys.exit(0))
     args = parser_arguments()
     res  = analyser_logs(args.fichier, fenetre_s=args.fenetre)
-    afficher_resultats(res, args.seuil)
-    generer_rapport(res, args.seuil, args.rapport)
+    afficher_resultats(res, args.seuil, fenetre_s=args.fenetre)
+    generer_rapport(res, args.seuil, args.rapport, fenetre_s=args.fenetre)
     print(f"\nRapport généré : {args.rapport}")
 
 
