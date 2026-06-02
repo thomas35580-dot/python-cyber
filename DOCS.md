@@ -18,9 +18,8 @@ Analyse automatisée de logs SSH pour la détection de tentatives de brute-force
    - [generer_rapport](#46-generer_rapport)
    - [main](#47-main)
 5. [Analyse vs corrigé formateur](#5-analyse-vs-corrigé-formateur)
-6. [Note et barème](#6-note-et-barème)
-7. [Fonctions supplémentaires hors TP](#7-fonctions-supplémentaires-hors-tp)
-8. [Utilisation](#8-utilisation)
+6. [Fonctions supplémentaires hors TP](#6-fonctions-supplémentaires-hors-tp)
+7. [Utilisation](#7-utilisation)
 
 ---
 
@@ -372,22 +371,7 @@ Le `print` de confirmation est volontairement placé **après** `generer_rapport
 
 ---
 
-## 6. Note et barème
-
-| Critère | Barème | Notre note | Justification |
-|---|---|---|---|
-| Lecture du fichier `auth.log` | /3 | **3/3** | `Path.exists()` + `sys.exit` + encodage `utf-8` |
-| Filtrage `Failed password` | /3 | **3/3** | Early continue propre, connexions réussies ignorées |
-| Extraction IP par regex | /4 | **4/4** | Regex correcte avec `\s+` plus robuste que le corrigé |
-| Comptage par IP | /3 | **3/3** | `defaultdict(int)` correct |
-| Seuil et détection | /3 | **3/3** | Seuil en paramètre, cas "aucune suspecte" géré |
-| Rapport texte | /3 | **3/3** | Rapport lisible avec comptes ciblés en bonus |
-| Qualité du code | /1 | **1/1** | Type hints, fonctions paramétrées, commentaires ciblés |
-| **Total** | **/20** | **20/20** | |
-
----
-
-## 7. Fonctions supplémentaires hors TP
+## 6. Fonctions supplémentaires hors TP
 
 Ces fonctions vont au-delà des exigences du TP de base et répondent aux **améliorations possibles** listées en section 8 du sujet formateur.
 
@@ -422,7 +406,7 @@ Protection contre la saturation de ressources en cas d'interruption manuelle pen
 
 ---
 
-## 8. Utilisation
+## 7. Utilisation
 
 ### Lancement standard
 
