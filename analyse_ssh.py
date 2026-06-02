@@ -3,141 +3,282 @@ import sys
 import signal
 import argparse
 import operator
+import ipaddress
+import os
+import tempfile
 from collections import defaultdict
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 from pathlib import Path
 
-LOG_FILE = "auth.log"
-RAPPORT_FILE = "rapport_bruteforce.txt"
-SEUIL_ALERTE = 3
-TAILLE_MAX_MO = 100
+LOG_FILE               = "auth.log"
+RAPPORT_FILE           = "rapport_bruteforce.txt"
+SEUIL_ALERTE           = 3
+FENETRE_GLISSANTE_S    = 60
+SEUIL_AVERT_TAILLE_MO  = 100   # avertissement (non bloquant)
 
-# Regex compilées une seule fois au chargement du module
-_RE_IP = re.compile(r"from\s+((?:\d{1,3}\.){3}\d{1,3})")
-_RE_USER = re.compile(r"Failed password for (?:invalid user )?(\S+) from")
+# ── Patterns compilés ─────────────────────────────────────────────────────────
+_IP_V4 = r"(?:\d{1,3}\.){3}\d{1,3}"
+_IP_V6 = r"(?:[0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}"
+_IP    = rf"({_IP_V4}|{_IP_V6})"
 
-# Clé de tri réutilisée — operator.itemgetter est plus rapide qu'une lambda
+# Horodatage syslog : "Jun  2 10:12:01"
+_RE_TS = re.compile(r"^(\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})")
+
+# IP après "from "
+_RE_IP_FROM = re.compile(rf"from\s+{_IP}")
+
+# Nom d'utilisateur ciblé (Failed password / Invalid user)
+_RE_USER = re.compile(r"(?:Failed password for (?:invalid user )?|Invalid user )(\S+) from")
+
+# Toutes les lignes qui représentent un échec d'authentification
+_RE_LIGNE_ECHEC = re.compile(
+    r"Failed password|Invalid user"
+    r"|Too many authentication failures"
+    r"|maximum authentication attempts exceeded"
+    r"|Disconnecting.*preauth"
+)
+
+# "message repeated 5 times: [ Failed password ... from IP ]"
+_RE_REPEATED = re.compile(rf"message repeated (\d+) times:.*?from\s+{_IP}")
+
+# Connexion acceptée (pour détecter une compromission)
+_RE_ACCEPTED = re.compile(
+    rf"Accepted (?:password|publickey) for \S+ from\s+{_IP}"
+)
+
 _PAR_NB_DESC = operator.itemgetter(1)
 
-signal.signal(signal.SIGINT, lambda *_: sys.exit(0))
+
+# ── Dataclass résultat ────────────────────────────────────────────────────────
+
+@dataclass
+class ResultatAnalyse:
+    tries: list[tuple[str, int]]      = field(default_factory=list)
+    cibles: dict[str, set[str]]       = field(default_factory=dict)
+    taux_max: dict[str, float]        = field(default_factory=dict)
+    compromises: set[str]             = field(default_factory=set)
+    nb_lignes: int                    = 0
+
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+def _severite(nb: int, seuil: int) -> str:
+    """Retourne ok / suspect / eleve / critique selon le ratio nb/seuil."""
+    if nb < seuil:          return "ok"
+    elif nb < seuil * 2:    return "suspect"
+    elif nb < seuil * 3:    return "eleve"
+    else:                   return "critique"
+
+
+def _valider_ip(ip: str) -> bool:
+    try:
+        ipaddress.ip_address(ip)
+        return True
+    except ValueError:
+        return False
+
+
+def _parse_timestamp(ligne: str) -> datetime | None:
+    m = _RE_TS.match(ligne)
+    if not m:
+        return None
+    try:
+        return datetime.strptime(
+            f"{datetime.now().year} {m.group(1).strip()}", "%Y %b %d %H:%M:%S"
+        )
+    except ValueError:
+        return None
+
+
+def _taux_max_fenetre(horodatages: list[datetime], fenetre_s: int) -> float:
+    """Nombre max d'échecs dans n'importe quelle fenêtre de fenetre_s secondes (O(n log n))."""
+    if not horodatages:
+        return 0.0
+    ts = sorted(horodatages)
+    max_nb, gauche = 1, 0
+    for droite in range(len(ts)):
+        while (ts[droite] - ts[gauche]).total_seconds() > fenetre_s:
+            gauche += 1
+        max_nb = max(max_nb, droite - gauche + 1)
+    return float(max_nb)
+
+
+def _sanitiser(texte: str) -> str:
+    return "".join(c for c in texte if c.isprintable())
 
 
 def _seuil_positif(valeur: str) -> int:
     n = int(valeur)
     if n < 1:
-        raise argparse.ArgumentTypeError("Le seuil doit être un entier >= 1.")
+        raise argparse.ArgumentTypeError("Le seuil doit être >= 1.")
     return n
 
 
+# ── CLI ───────────────────────────────────────────────────────────────────────
+
 def parser_arguments() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Détection de brute-force SSH par analyse de logs.")
-    p.add_argument("--fichier", default=LOG_FILE,
-                   help=f"Fichier de logs à analyser (défaut : {LOG_FILE})")
-    p.add_argument("--seuil", type=_seuil_positif, default=SEUIL_ALERTE,
-                   help=f"Nombre d'échecs avant alerte, >= 1 (défaut : {SEUIL_ALERTE})")
-    p.add_argument("--rapport", default=RAPPORT_FILE,
-                   help=f"Fichier de sortie du rapport (défaut : {RAPPORT_FILE})")
+    p.add_argument("--fichier",  default=LOG_FILE,
+                   help=f"Fichier de logs (défaut : {LOG_FILE})")
+    p.add_argument("--seuil",    type=_seuil_positif, default=SEUIL_ALERTE,
+                   help=f"Échecs minimum avant alerte, >= 1 (défaut : {SEUIL_ALERTE})")
+    p.add_argument("--rapport",  default=RAPPORT_FILE,
+                   help=f"Fichier de sortie (défaut : {RAPPORT_FILE})")
+    p.add_argument("--fenetre",  type=int, default=FENETRE_GLISSANTE_S,
+                   help=f"Fenêtre glissante en secondes (défaut : {FENETRE_GLISSANTE_S})")
     return p.parse_args()
 
 
-def _valider_ip(ip: str) -> bool:
-    """Vérifie que chaque octet est dans [0, 255]."""
-    return all(0 <= int(octet) <= 255 for octet in ip.split("."))
+# ── Analyse ───────────────────────────────────────────────────────────────────
 
-
-def extraire_ip(ligne: str) -> str | None:
-    match = _RE_IP.search(ligne)
-    if not match:
-        return None
-    ip = match.group(1)
-    return ip if _valider_ip(ip) else None
-
-
-def extraire_utilisateur(ligne: str) -> str | None:
-    match = _RE_USER.search(ligne)
-    if not match:
-        return None
-    # Supprime les caractères non imprimables — prévient l'injection dans le rapport
-    propre = "".join(c for c in match.group(1) if c.isprintable())
-    return propre if propre else None
-
-
-def analyser_logs(chemin: str) -> tuple[dict[str, int], dict[str, set[str]]]:
-    """Lit le fichier ligne par ligne sans charger tout en RAM."""
+def analyser_logs(chemin: str, fenetre_s: int = FENETRE_GLISSANTE_S) -> ResultatAnalyse:
+    """Lit le fichier ligne par ligne, détecte brute-force et compromissions."""
     chemin_path = Path(chemin)
-
     if not chemin_path.exists():
         print(f"Erreur : le fichier '{chemin}' est introuvable.")
         sys.exit(1)
 
     taille_mo = chemin_path.stat().st_size / (1024 * 1024)
-    if taille_mo > TAILLE_MAX_MO:
-        print(f"Avertissement : fichier volumineux ({taille_mo:.1f} Mo), traitement en cours...")
+    if taille_mo > SEUIL_AVERT_TAILLE_MO:
+        print(f"Avertissement : fichier volumineux ({taille_mo:.1f} Mo)…")
 
-    echecs_par_ip: defaultdict[str, int] = defaultdict(int)
-    cibles_par_ip: defaultdict[str, set[str]] = defaultdict(set)
+    echecs:        defaultdict[str, int]           = defaultdict(int)
+    cibles:        defaultdict[str, set[str]]      = defaultdict(set)
+    horodatages:   defaultdict[str, list[datetime]]= defaultdict(list)
+    ips_echec:     set[str]                        = set()
+    ips_acceptees: set[str]                        = set()
+    nb_lignes = 0
 
     try:
-        # errors='replace' : un caractère invalide devient '?' sans lever d'exception
         with open(chemin, "r", encoding="utf-8", errors="replace") as f:
             for ligne in f:
-                if "Failed password" not in ligne:
+                nb_lignes += 1
+                ts = _parse_timestamp(ligne)
+
+                # "message repeated N times: [...]" — compresse N lignes identiques
+                m_rep = _RE_REPEATED.search(ligne)
+                if m_rep:
+                    count = int(m_rep.group(1))
+                    ip    = m_rep.group(2)
+                    if _valider_ip(ip):
+                        echecs[ip]  += count
+                        ips_echec.add(ip)
+                        if ts:
+                            horodatages[ip].extend([ts] * min(count, 500))
                     continue
-                ip = extraire_ip(ligne)
-                if not ip:
+
+                # Lignes d'échec
+                if _RE_LIGNE_ECHEC.search(ligne):
+                    m_ip = _RE_IP_FROM.search(ligne)
+                    if m_ip:
+                        ip = m_ip.group(1)
+                        if _valider_ip(ip):
+                            echecs[ip] += 1
+                            ips_echec.add(ip)
+                            if ts:
+                                horodatages[ip].append(ts)
+                            m_user = _RE_USER.search(ligne)
+                            if m_user:
+                                user = _sanitiser(m_user.group(1))
+                                if user:
+                                    cibles[ip].add(user)
                     continue
-                echecs_par_ip[ip] += 1
-                utilisateur = extraire_utilisateur(ligne)
-                if utilisateur:
-                    cibles_par_ip[ip].add(utilisateur)
+
+                # Connexion acceptée
+                m_acc = _RE_ACCEPTED.search(ligne)
+                if m_acc:
+                    ip = m_acc.group(1)
+                    if _valider_ip(ip):
+                        ips_acceptees.add(ip)
+
     except PermissionError:
         print(f"Erreur : permission refusée pour lire '{chemin}'.")
         sys.exit(1)
 
-    return dict(echecs_par_ip), dict(cibles_par_ip)
+    taux_max = {
+        ip: _taux_max_fenetre(horodatages[ip], fenetre_s)
+        for ip in echecs
+        if len(horodatages[ip]) >= 2
+    }
+
+    return ResultatAnalyse(
+        tries       = sorted(echecs.items(), key=_PAR_NB_DESC, reverse=True),
+        cibles      = dict(cibles),
+        taux_max    = taux_max,
+        compromises = ips_echec & ips_acceptees,
+        nb_lignes   = nb_lignes,
+    )
 
 
-def _trier(echecs_par_ip: dict[str, int]) -> list[tuple[str, int]]:
-    """Calcule le tri une seule fois, partagé entre affichage et rapport."""
-    return sorted(echecs_par_ip.items(), key=_PAR_NB_DESC, reverse=True)
+# ── Affichage terminal ────────────────────────────────────────────────────────
 
-
-def afficher_resultats(
-    echecs_par_ip: dict[str, int],
-    cibles_par_ip: dict[str, set[str]],
-    seuil: int,
-) -> None:
+def afficher_resultats(res: ResultatAnalyse, seuil: int) -> None:
+    LABELS = {
+        "ok": "OK", "suspect": "SUSPECT",
+        "eleve": "ÉLEVÉ", "critique": "CRITIQUE",
+    }
     print("Analyse terminée.")
     print("-----------------")
-    for ip, nb in _trier(echecs_par_ip):
-        statut = "SUSPECTE" if nb >= seuil else "OK"
-        comptes = ", ".join(sorted(cibles_par_ip.get(ip, set())))
-        print(f"{ip} : {nb} échec(s) - {statut} | comptes ciblés : {comptes}")
+    for ip, nb in res.tries:
+        sev    = "compromis" if ip in res.compromises else _severite(nb, seuil)
+        label  = "COMPROMIS" if sev == "compromis" else LABELS[sev]
+        taux   = res.taux_max.get(ip, 0)
+        taux_s = f" | {taux:.0f} échecs/60s" if taux else ""
+        comptes = ", ".join(sorted(res.cibles.get(ip, set())))
+        print(f"{ip} : {nb} échec(s) - {label}{taux_s} | comptes : {comptes}")
+    if res.compromises:
+        print(f"\n⚠  COMPROMISSION PROBABLE : {', '.join(sorted(res.compromises))}")
 
 
-def generer_rapport(
-    echecs_par_ip: dict[str, int],
-    cibles_par_ip: dict[str, set[str]],
-    seuil: int,
-    fichier_rapport: str,
-) -> None:
-    tries = _trier(echecs_par_ip)
-    suspectes = [(ip, nb) for ip, nb in tries if nb >= seuil]
+# ── Rapport ───────────────────────────────────────────────────────────────────
 
+def _ecrire_rapport(f, res: ResultatAnalyse, seuil: int) -> None:
+    f.write("Rapport d'analyse SSH\n")
+    f.write("======================\n\n")
+    f.write(f"Seuil d'alerte       : {seuil} échecs\n")
+    f.write(f"Lignes analysées     : {res.nb_lignes}\n")
+    f.write(f"IP compromises       : {len(res.compromises)}\n\n")
+
+    f.write("Résumé des échecs par IP :\n")
+    for ip, nb in res.tries:
+        comptes = ", ".join(sorted(res.cibles.get(ip, set())))
+        taux    = res.taux_max.get(ip, 0)
+        taux_s  = f" | taux max : {taux:.0f} échecs/60s" if taux else ""
+        flag    = " [COMPROMIS]" if ip in res.compromises else ""
+        f.write(f"- {ip} : {nb} échec(s){taux_s}{flag} | comptes : {comptes}\n")
+
+    f.write("\nIP suspectes :\n")
+    suspectes = [(ip, nb) for ip, nb in res.tries if nb >= seuil]
+    if not suspectes:
+        f.write("Aucune IP suspecte détectée.\n")
+    else:
+        for ip, nb in suspectes:
+            flag = " ← COMPROMIS" if ip in res.compromises else ""
+            f.write(f"- ALERTE : {ip} avec {nb} échecs{flag}\n")
+
+    if res.compromises:
+        f.write("\nCOMPROMISSIONS DÉTECTÉES :\n")
+        for ip in sorted(res.compromises):
+            nb = dict(res.tries).get(ip, 0)
+            f.write(f"- {ip} : {nb} échec(s) suivis d'une connexion acceptée\n")
+
+
+def generer_rapport(res: ResultatAnalyse, seuil: int, fichier_rapport: str) -> None:
+    parent = Path(fichier_rapport).resolve().parent
     try:
-        with open(fichier_rapport, "w", encoding="utf-8") as f:
-            f.write("Rapport d'analyse SSH\n")
-            f.write("======================\n\n")
-            f.write(f"Seuil d'alerte : {seuil} échecs\n\n")
-            f.write("Résumé des échecs par IP :\n")
-            for ip, nb in tries:
-                comptes = ", ".join(sorted(cibles_par_ip.get(ip, set())))
-                f.write(f"- {ip} : {nb} échec(s) | comptes ciblés : {comptes}\n")
-            f.write("\nIP suspectes :\n")
-            if not suspectes:
-                f.write("Aucune IP suspecte détectée.\n")
-            else:
-                for ip, nb in suspectes:
-                    f.write(f"- ALERTE : {ip} avec {nb} échecs\n")
+        # Écriture atomique : fichier temporaire → os.replace
+        fd, tmp = tempfile.mkstemp(dir=parent, suffix=".tmp", text=True)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                _ecrire_rapport(f, res, seuil)
+            os.replace(tmp, fichier_rapport)
+        except Exception:
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
+            raise
     except PermissionError:
         print(f"Erreur : permission refusée pour écrire '{fichier_rapport}'.")
         sys.exit(1)
@@ -146,11 +287,14 @@ def generer_rapport(
         sys.exit(1)
 
 
+# ── Point d'entrée ────────────────────────────────────────────────────────────
+
 def main() -> None:
+    signal.signal(signal.SIGINT, lambda *_: sys.exit(0))
     args = parser_arguments()
-    echecs_par_ip, cibles_par_ip = analyser_logs(args.fichier)
-    afficher_resultats(echecs_par_ip, cibles_par_ip, args.seuil)
-    generer_rapport(echecs_par_ip, cibles_par_ip, args.seuil, args.rapport)
+    res  = analyser_logs(args.fichier, fenetre_s=args.fenetre)
+    afficher_resultats(res, args.seuil)
+    generer_rapport(res, args.seuil, args.rapport)
     print(f"\nRapport généré : {args.rapport}")
 
 
