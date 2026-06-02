@@ -274,8 +274,16 @@ def _ecrire_rapport(f, res: ResultatAnalyse, seuil: int,
         f.write("Aucune IP suspecte détectée.\n")
     else:
         for ip, nb in suspectes:
+            taux = res.taux_max.get(ip, 0)
             flag = " ← COMPROMIS" if ip in res.compromises else ""
-            f.write(f"- ALERTE : {ip} avec {nb} échecs{flag}\n")
+            if taux and nb < seuil:
+                # Alerte déclenchée par le taux seul — le nb brut serait trompeur sans explication
+                raison = f" (nb cumulé : {nb}, alerte sur taux : {taux:.0f} échecs/{fenetre_s}s)"
+            elif taux:
+                raison = f" | taux max : {taux:.0f} échecs/{fenetre_s}s"
+            else:
+                raison = ""
+            f.write(f"- ALERTE : {ip} avec {nb} échecs{raison}{flag}\n")
 
     if res.compromises:
         f.write("\nCOMPROMISSIONS DÉTECTÉES :\n")
